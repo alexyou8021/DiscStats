@@ -4,30 +4,44 @@ from bs4 import BeautifulSoup
 import json
 import xlwt
 from xlwt import *
+import sys
 
-teamid = '5691358622777344'
-password = 'statsdontmatter'
-dates = ['2/17']
+if len(sys.argv) == 4:
+    tournament = sys.argv[1]
+    teamid = sys.argv[2]
+    password = sys.argv[3]
+elif len(sys.argv) == 3:
+    tournament = sys.argv[1] 
+    teamid = sys.argv[2]
+else:
+    teamid = '5630483324993536'
+    password = ''
+    tournament = 'PBJ'
 
-post = requests.post('http://www.ultianalytics.com/rest/view/team/' + teamid + '/authenticate/' + password + '/')
-auth = post.headers['IUltimateAuth']
+if password:
+    post = requests.post('http://www.ultianalytics.com/rest/view/team/' + teamid + '/authenticate/' + password + '/')
+    auth = post.headers['IUltimateAuth']
+    page = requests.get('http://www.ultianalytics.com/rest/view/team/' + teamid + '/', headers={'IUltimateAuth':auth})
+else:
+    page = requests.get('http://www.ultianalytics.com/rest/view/team/' + teamid + '/')
 
-page = requests.get('http://www.ultianalytics.com/rest/view/team/' + teamid + '/', headers={'IUltimateAuth':auth})
 soup = BeautifulSoup(page.content, 'html.parser')
 
 team_info = json.loads(soup.text)
 name = team_info['nameWithSeason']
 
-page = requests.get('http://www.ultianalytics.com/rest/view/team/' + teamid + '/games', headers={'IUltimateAuth':auth})
+if password:
+    page = requests.get('http://www.ultianalytics.com/rest/view/team/' + teamid + '/games', headers={'IUltimateAuth':auth})
+else:
+    page = requests.get('http://www.ultianalytics.com/rest/view/team/' + teamid + '/games')
 soup = BeautifulSoup(page.content, 'html.parser')
 
 games = json.loads(soup.text)
 gameids = []
 for game in games:
-    for date in dates:
-        if(date in game['date']):
-            print game['tournamentName'], game['opponentName']
-            gameids.append(game['gameId'])
+    if game['tournamentName'] == tournament:
+        print game['tournamentName'], game['opponentName']
+        gameids.append(game['gameId'])
 
 stat_url = 'http://www.ultianalytics.com/rest/view/team/' + teamid + '/stats/player'
 if(gameids):
@@ -36,7 +50,10 @@ if(gameids):
         stat_url += gameid + "_"
 stat_url = stat_url[:-1]
 
-page = requests.get(stat_url, headers={'IUltimateAuth':auth})
+if password:
+    page = requests.get(stat_url, headers={'IUltimateAuth':auth})
+else:
+    page = requests.get(stat_url)
 soup = BeautifulSoup(page.content, 'html.parser')
 
 team_stats = json.loads(soup.text)
@@ -75,11 +92,11 @@ for x in range(0, len(team_stats)):
     sheet.write(2, x + 1, team_stats[x]['assists'])
     sheet.write(3, x + 1, team_stats[x]['ds'])
     sheet.write(4, x + 1, team_stats[x]['callahans'])
-    sheet.write(5, x + 1, Formula("SUM(" + letter + "31+" + letter + "32) * -4"))
+    sheet.write(5, x + 1, Formula("SUM(" + letter + "31+" + letter + "32)"))
     sheet.write(6, x + 1, Formula("((" + letter + "28/100)*" + letter + "27)/2"))
     sheet.write(7, x + 1, Formula("((" + letter + "30/100)*" + letter + "29)/2"))
     sheet.write(8, x + 1, team_stats[x]['dpointsPlayed'])
-    sheet.write(9, x + 1, Formula("SUM($" + letter + "$2:$" + letter + "$9)"))
+    sheet.write(9, x + 1, Formula(letter + '2 * 5 + ' + letter + '3 * 5 + ' + letter + '4 * 4 + ' + letter + '5 * 20 + ' + "SUM($" + letter + "$7:$" + letter + "$9)"))
 
     sheet.write(24, x + 1, team_stats[x]['dpointsPlayed'])
     sheet.write(25, x + 1, team_stats[x]['drops'])
@@ -90,5 +107,5 @@ for x in range(0, len(team_stats)):
     sheet.write(30, x + 1, team_stats[x]['throwaways'])
     sheet.write(31, x + 1, team_stats[x]['drops'])
     
-book.save("tuff.xls")
+book.save(team_info["name"] + ".xls")
 print 'New Excel file saved.'
