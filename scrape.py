@@ -6,18 +6,21 @@ import xlwt
 from xlwt import *
 import sys
 
-if len(sys.argv) == 4:
-    tournament = sys.argv[1]
-    teamid = sys.argv[2]
-    password = sys.argv[3]
+tournament = []
+if len(sys.argv) >= 4:
+    tournmanet = []
+    teamid = sys.argv[1]
+    password = sys.argv[2]
+    for x in range(3,len(sys.argv)):
+        tournament += [sys.argv[x]]
 elif len(sys.argv) == 3:
-    tournament = sys.argv[1] 
-    teamid = sys.argv[2]
+    teamid = sys.argv[1]
     password = ''
+    tournament = sys.argv[2] 
 else:
     teamid = '5630483324993536'
     password = ''
-    tournament = 'PBJ'
+    tournament = ['PBJ','Warm Up','Stanford Invite','Sectionals','Regionals']
 
 if password:
     post = requests.post('http://www.ultianalytics.com/rest/view/team/' + teamid + '/authenticate/' + password + '/')
@@ -40,7 +43,7 @@ soup = BeautifulSoup(page.content, 'html.parser')
 games = json.loads(soup.text)
 gameids = []
 for game in games:
-    if game['tournamentName'] == tournament:
+    if game['tournamentName'] in tournament:
         print game['tournamentName'], game['opponentName']
         gameids.append(game['gameId'])
 
@@ -101,7 +104,7 @@ for x in range(0, len(team_stats)):
     sheet.write(6, x + 1, Formula("((" + letter + "28/100)*" + letter + "27)/2"))
     sheet.write(7, x + 1, Formula("((" + letter + "30/100)*" + letter + "29)/2"))
     sheet.write(8, x + 1, team_stats[x]['dpointsPlayed'])
-    sheet.write(9, x + 1, Formula(letter + '2 * 5 + ' + letter + '3 * 5 + ' + letter + '4 * 4 + ' + letter + '5 * 20 + ' + "SUM($" + letter + "$7:$" + letter + "$9)"))
+    sheet.write(9, x + 1, Formula(letter + '2 * 5 + ' + letter + '3 * 5 + ' + letter + '4 * 4 + ' + letter + '5 * 20 + ' + letter + '6 * -4 + ' + "SUM($" + letter + "$7:$" + letter + "$9)"))
 
     sheet.write(24, x + 1, team_stats[x]['dpointsPlayed'])
     sheet.write(25, x + 1, team_stats[x]['drops'])
